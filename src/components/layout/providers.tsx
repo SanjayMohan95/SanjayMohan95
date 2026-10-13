@@ -25,7 +25,7 @@ function StoreHydration() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all(PERSISTED.map(({ store }) => store.persist.rehydrate())).then(() => {
+    Promise.all(PERSISTED.map(({ store }) => store.persist?.rehydrate())).then(() => {
       if (cancelled) return;
       useOrderStore.getState().ensureSeeded();
       setHydrated();
@@ -33,7 +33,7 @@ function StoreHydration() {
 
     const onStorage = (e: StorageEvent) => {
       const match = PERSISTED.find((p) => p.key === e.key);
-      if (match) void match.store.persist.rehydrate();
+      if (match) void match.store.persist?.rehydrate();
     };
     window.addEventListener('storage', onStorage);
     return () => {

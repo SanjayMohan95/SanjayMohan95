@@ -51,3 +51,14 @@ export function downloadVatInvoice(order: Order): void {
   a.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+/** Invoice markup scoped for in-page display (inside a dialog). */
+export function renderVatInvoiceFragment(order: Order): { css: string; html: string } {
+  const doc = renderVatInvoice(order);
+  const css = (doc.match(/<style>([\s\S]*?)<\/style>/)?.[1] ?? '')
+    .replace('@media print{body{margin:0}}', '')
+    .replace(/(^|})\s*body\{[^}]*\}/, '$1')
+    .replace(/(^|})([^{}@]+)\{/g, (_m, close: string, sel: string) => `${close}${sel.split(',').map((x) => `.vat-invoice ${x.trim()}`).join(',')}{`);
+  const html = doc.match(/<body>([\s\S]*)<\/body>/)?.[1] ?? '';
+  return { css, html };
+}

@@ -78,6 +78,10 @@ export function validateCardNumber(number: string): string | null {
   const rule = getBrandRule(digits);
   if (!rule.lengths.includes(digits.length)) return `${rule.label} numbers are ${rule.lengths.join(' or ')} digits.`;
   if (!luhnCheck(digits)) return 'That card number isn’t valid — please check it.';
+  // The hosted demo never accepts real card numbers — sandbox cards only.
+  if (IS_DEMO_HOST && !Object.values(TEST_CARDS).some((c) => digitsOnly(c) === digits)) {
+    return 'This demo only accepts the sandbox test cards listed below.';
+  }
   return null;
 }
 
@@ -116,6 +120,8 @@ export function validateCvv(cvv: string, cardNumber: string): string | null {
   }
   return null;
 }
+
+export const IS_DEMO_HOST = process.env.NEXT_PUBLIC_ARTIFACT_BUILD === '1';
 
 /** Sandbox behaviours mirroring common PSP test cards. */
 export const TEST_CARDS = {

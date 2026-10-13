@@ -1,16 +1,18 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { ChevronDown, Download, MapPin, Navigation, RefreshCcw, Star } from 'lucide-react';
+import { ChevronDown, Download, FileText, MapPin, Navigation, RefreshCcw, Star } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { PriceBreakdownView } from '@/components/cart/price-breakdown';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Dialog } from '@/components/ui/dialog';
 import { SmartImage } from '@/components/ui/smart-image';
 import { getRestaurant } from '@/data';
 import { formatDate, formatMoney, formatTime } from '@/lib/format';
-import { downloadVatInvoice } from '@/lib/invoice';
+import { IS_DEMO_HOST } from '@/lib/card';
+import { downloadVatInvoice, renderVatInvoiceFragment } from '@/lib/invoice';
 import { STATUS_LABEL } from '@/lib/simulation';
 import { cn } from '@/lib/utils';
 import { toast } from '@/store/ui-store';
@@ -21,6 +23,8 @@ const ACTIVE = new Set(['placed', 'accepted', 'preparing', 'ready_for_pickup', '
 
 export function OrderCard({ order, onReorder, defaultOpen }: { order: Order; onReorder: (order: Order) => void; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(!!defaultOpen);
+  const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const invoice = invoiceOpen ? renderVatInvoiceFragment(order) : null;
   const active = ACTIVE.has(order.status);
   const hero = getRestaurant(order.restaurants[0]?.id ?? '')?.heroImage;
   const tone = order.status === 'delivered' ? 'success' : order.status === 'rejected' || order.status === 'cancelled' ? 'danger' : 'brand';
@@ -96,16 +100,23 @@ export function OrderCard({ order, onReorder, defaultOpen }: { order: Order; onR
           </div>
           <div className="space-y-4">
             <PriceBreakdownView breakdown={order.breakdown} fulfilment={order.fulfilment} />
-            <Button
-              variant="outline"
-              fullWidth
-              onClick={() => {
-                downloadVatInvoice(order);
-                toast({ title: 'VAT invoice downloaded', description: `${order.vatInvoiceNumber}.html — open and print to PDF.`, tone: 'success' });
-              }}
-            >
-              <Download className="h-4 w-4" aria-hidden /> Download VAT invoice
-            </Button>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Button variant="outline" fullWidth onClick={() => setInvoiceOpen(true)}>
+                <FileText className="h-4 w-4" aria-hidden /> View VAT invoice
+              </Button>
+              {!IS_DEMO_HOST && (
+                <Button
+                  variant="outline"
+                  fullWidth
+                  onClick={() => {
+                    downloadVatInvoice(order);
+                    toast({ title: 'VAT invoice downloaded', description: `${order.vatInvoiceNumber}.html — open and print to PDF.`, tone: 'success' });
+                  }}
+                >
+                  <Download className="h-4 w-4" aria-hidden /> Download VAT invoice
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -116,6 +127,14 @@ export function OrderCard({ order, onReorder, defaultOpen }: { order: Order; onR
           <ReviewModule order={order} />
         </div>
       )}
+      <Dialog open={invoiceOpen} onClose={() => setInvoiceOpen(false)} title="VAT invoice" description={order.vatInvoiceNumber} size="lg">
+        {invoice && (
+          <div className="vat-invoice px-5 pb-6 sm:px-6">
+            <style>{invoice.css}</style>
+            <div dangerouslySetInnerHTML={{ __html: invoice.html }} />
+          </div>
+        )}
+      </Dialog>
     </motion.article>
   );
 }
